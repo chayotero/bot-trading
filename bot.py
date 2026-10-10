@@ -2,81 +2,113 @@ import os
 import time
 import requests
 import easyocr
-from PIL import Image
-from io import BytesIO
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID")
-TRADINGVIEW_URL    = os.environ.get("TRADINGVIEW_URL")
+# Cargar credenciales de Telegram desde los secretos de GitHub
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-def enviar_alerta_telegram(mensaje):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": mensaje,
-        "parse_mode": "Markdown"
-    }
+def send_telegram_alert(message):
+    if not TELEGRAM_TOKEN or not CHAT_ID:
+        print("Error: Faltan las credenciales de Telegram en los secretos.")
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {"chat_id": CHAT_ID, "text": message}
     try:
-        requests.post(url, json=payload, timeout=10)
-        print("✅ Alerta enviada con éxito a Telegram.")
+        response = requests.post(url, data=payload)
+        if response.status_code == 200:
+            print("✅ Alerta enviada con éxito a Telegram.")
+        else:
+            print(f"⚠️ Error al enviar a Telegram: {response.text}")
     except Exception as e:
-        print(f"❌ Error al conectar con Telegram: {e}")
+        print(f"⚠️ Excepción en Telegram: {e}")
+
+# ==========================================
+# LISTA DE ACTIVOS Y TEMPORALIDADES (12 URLs)
+# ==========================================
+# Reemplaza 'AQUÍ_TU_ENLACE_...' con los links exactos 
+# de cada gráfico que tengas configurado en TradingView.
+TARGETS = [
+    # --- BITCOIN (BTCUSD) ---
+    {"name": "BTCUSD - 15m", "url": "AQUÍ_TU_ENLACE_BTC_15M"},
+    {"name": "BTCUSD - 30m", "url": "AQUÍ_TU_ENLACE_BTC_30M"},
+    {"name": "BTCUSD - 45m", "url": "AQUÍ_TU_ENLACE_BTC_45M"},
+    {"name": "BTCUSD - 1h",   "url": "AQUÍ_TU_ENLACE_BTC_1H"},
+    
+    # --- ETHEREUM (ETHUSD) ---
+    {"name": "ETHUSD - 15m", "url": "AQUÍ_TU_ENLACE_ETH_15M"},
+    {"name": "ETHUSD - 30m", "url": "AQUÍ_TU_ENLACE_ETH_30M"},
+    {"name": "ETHUSD - 45m", "url": "AQUÍ_TU_ENLACE_ETH_45M"},
+    {"name": "ETHUSD - 1h",   "url": "AQUÍ_TU_ENLACE_ETH_1H"},
+    
+    # --- ORO (XAUUSD) ---
+    {"name": "XAUUSD - 15m", "url": "AQUÍ_TU_ENLACE_XAU_15M"},
+    {"name": "XAUUSD - 30m", "url": "AQUÍ_TU_ENLACE_XAU_30M"},
+    {"name": "XAUUSD - 45m", "url": "AQUÍ_TU_ENLACE_XAU_45M"},
+    {"name": "XAUUSD - 1h",   "url": "AQUÍ_TU_ENLACE_XAU_1H"},
+]
 
 def main():
-    print("🚀 Iniciando escaneo automatizado en la nube...")
+    print("🚀 Iniciando escaneo multi-activo y multi-temporalidad...")
     
+    # Configurar Selenium en modo headless (sin interfaz gráfica) para Linux/GitHub Actions
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument('--mute-audio')
-
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--window-size=1920,1080")
     
+    driver = webdriver.Chrome(options=chrome_options)
+    reader = easyocr.Reader(['en'], gpu=False)
+    
+    keywords = ["LONG", "SHORT", "ENTRADA", "TP", "SL"]
+
     try:
-        print(f"🌐 Abriendo gráfico de TradingView...")
-        driver.get(TRADINGVIEW_URL)
-        time.sleep(25)
-
-        png_data = driver.get_screenshot_as_png()
-        image = Image.open(BytesIO(png_data))
-
-        ancho, alto = image.size
-        region_analisis = image.crop((int(ancho * 0.40), 0, ancho, alto))
-
-        bytes_img = BytesIO()
-        region_analisis.save(bytes_img, format='PNG')
-        
-        print("🧠 Analizando texto visualmente...")
-        reader = easyocr.Reader(['es', 'en'], gpu=False)
-        resultados = reader.readtext(bytes_img.getvalue(), detail=0)
-        texto_unificado = " ".join(resultados).upper()
-
-        es_long  = "LONG" in texto_unificado or ("ENTRADA" in texto_unificado and "TP" in texto_unificado)
-        es_short = "SHORT" in texto_unificado or ("ENTRADA" in texto_unificado and "SL" in texto_unificado)
-
-        if es_long or es_short:
-            direccion = "🟢 COMPRA / LONG" if es_long else "🔴 VENTA / SHORT"
-            mensaje = (
-                f"🚨 *¡SEÑAL DETECTADA EN LA NUBE (1H)*\n\n"
-                f"**Dirección:** {direccion}\n"
-                f"**Datos detectados:**\n`{texto_unificado[:250]}`\n\n"
-                f"⚡ *Revisa tu plataforma para operar.*"
-            )
-            print("🚨 ¡Orden detectada! Enviando notificación...")
-            enviar_alerta_telegram(mensaje)
-        else:
-            print("ℹ️ No hay nuevas órdenes activas en este momento.")
-
-    except Exception as e:
-        print(f"❌ Error en la ejecución: {e}")
+        for target in TARGETS:
+            name = target["name"]
+            url = target["url"]
+            
+            # Si una URL no ha sido configurada o tiene texto de relleno, la omitimos
+            if not url or "AQUÍ_TU_ENLACE" in url:
+                print(f"⚠️ Omitiendo {name}: URL no configurada.")
+                continue
+                
+            print(f"\n🔍 Analizando mercado: {name} -> {url}")
+            try:
+                driver.get(url)
+                # Esperar 12 segundos a que TradingView cargue velas, canvas e indicadores
+                time.sleep(12)
+                
+                screenshot_path = "screenshot.png"
+                driver.save_screenshot(screenshot_path)
+                
+                # Ejecutar OCR en la captura
+                results = reader.readtext(screenshot_path)
+                detected_text = " ".join([res[1] for res in results]).upper()
+                print(f"📝 Texto detectado en {name}: {detected_text[:100]}...")
+                
+                # Verificar si alguna palabra clave está presente
+                found_keywords = [kw for kw in keywords if kw in detected_text]
+                
+                if found_keywords:
+                    alerta_msg = (
+                        f"🚨 ¡SEÑAL DETECTADA!\n"
+                        f"📊 Activo/TF: {name}\n"
+                        f"🔑 Coincidencias: {', '.join(found_keywords)}\n"
+                        f"🔗 Gráfico: {url}"
+                    )
+                    print(alerta_msg)
+                    send_telegram_alert(alerta_msg)
+                else:
+                    print(f"ℹ️ Sin señales activas en {name}.")
+                    
+            except Exception as e:
+                print(f"❌ Error al procesar {name}: {e}")
+                
     finally:
         driver.quit()
+        print("\n🏁 Escaneo completo finalizado.")
 
 if __name__ == "__main__":
     main()
