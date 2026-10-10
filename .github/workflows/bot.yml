@@ -2,7 +2,7 @@ name: Bot Purpura 11 24-7
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 jobs:
