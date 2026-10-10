@@ -25,34 +25,32 @@ def send_telegram_alert(message):
         print(f"⚠️ Excepción en Telegram: {e}")
 
 # ==========================================
-# LISTA DE ACTIVOS Y TEMPORALIDADES (12 URLs)
+# LISTA DE 12 OBJETIVOS (3 ACTIVOS X 4 TEMPORALIDADES)
 # ==========================================
-# Reemplaza 'AQUÍ_TU_ENLACE_...' con los links exactos 
-# de cada gráfico que tengas configurado en TradingView.
 TARGETS = [
     # --- BITCOIN (BTCUSD) ---
-    {"name": "BTCUSD - 15m", "url": "AQUÍ_TU_ENLACE_BTC_15M"},
-    {"name": "BTCUSD - 30m", "url": "AQUÍ_TU_ENLACE_BTC_30M"},
-    {"name": "BTCUSD - 45m", "url": "AQUÍ_TU_ENLACE_BTC_45M"},
-    {"name": "BTCUSD - 1h",   "url": "AQUÍ_TU_ENLACE_BTC_1H"},
+    {"name": "BTCUSD - 15m", "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=CRYPTO%3ABTCUSD&interval=15"},
+    {"name": "BTCUSD - 30m", "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=CRYPTO%3ABTCUSD&interval=30"},
+    {"name": "BTCUSD - 45m", "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=CRYPTO%3ABTCUSD&interval=45"},
+    {"name": "BTCUSD - 1h",   "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=CRYPTO%3ABTCUSD&interval=60"},
     
     # --- ETHEREUM (ETHUSD) ---
-    {"name": "ETHUSD - 15m", "url": "AQUÍ_TU_ENLACE_ETH_15M"},
-    {"name": "ETHUSD - 30m", "url": "AQUÍ_TU_ENLACE_ETH_30M"},
-    {"name": "ETHUSD - 45m", "url": "AQUÍ_TU_ENLACE_ETH_45M"},
-    {"name": "ETHUSD - 1h",   "url": "AQUÍ_TU_ENLACE_ETH_1H"},
+    {"name": "ETHUSD - 15m", "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=CRYPTO%3AETHUSD&interval=15"},
+    {"name": "ETHUSD - 30m", "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=CRYPTO%3AETHUSD&interval=30"},
+    {"name": "ETHUSD - 45m", "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=CRYPTO%3AETHUSD&interval=45"},
+    {"name": "ETHUSD - 1h",   "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=CRYPTO%3AETHUSD&interval=60"},
     
     # --- ORO (XAUUSD) ---
-    {"name": "XAUUSD - 15m", "url": "AQUÍ_TU_ENLACE_XAU_15M"},
-    {"name": "XAUUSD - 30m", "url": "AQUÍ_TU_ENLACE_XAU_30M"},
-    {"name": "XAUUSD - 45m", "url": "AQUÍ_TU_ENLACE_XAU_45M"},
-    {"name": "XAUUSD - 1h",   "url": "AQUÍ_TU_ENLACE_XAU_1H"},
+    {"name": "XAUUSD - 15m", "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=OANDA%3AXAUUSD&interval=15"},
+    {"name": "XAUUSD - 30m", "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=OANDA%3AXAUUSD&interval=30"},
+    {"name": "XAUUSD - 45m", "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=OANDA%3AXAUUSD&interval=45"},
+    {"name": "XAUUSD - 1h",   "url": "https://www.tradingview.com/chart/GW9AnMQd/?symbol=OANDA%3AXAUUSD&interval=60"},
 ]
 
 def main():
-    print("🚀 Iniciando escaneo multi-activo y multi-temporalidad...")
+    print("🚀 Iniciando escaneo multi-activo y multi-temporalidad (12 gráficos)...")
     
-    # Configurar Selenium en modo headless (sin interfaz gráfica) para Linux/GitHub Actions
+    # Configurar Selenium en modo headless para Linux/GitHub Actions
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
@@ -68,13 +66,8 @@ def main():
         for target in TARGETS:
             name = target["name"]
             url = target["url"]
-            
-            # Si una URL no ha sido configurada o tiene texto de relleno, la omitimos
-            if not url or "AQUÍ_TU_ENLACE" in url:
-                print(f"⚠️ Omitiendo {name}: URL no configurada.")
-                continue
                 
-            print(f"\n🔍 Analizando mercado: {name} -> {url}")
+            print(f"\n🔍 Analizando mercado: {name}")
             try:
                 driver.get(url)
                 # Esperar 12 segundos a que TradingView cargue velas, canvas e indicadores
