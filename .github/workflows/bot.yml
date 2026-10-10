@@ -20,7 +20,10 @@ jobs:
       - name: Instalar dependencias del sistema y Chrome
         run: |
           sudo apt-get update
-          sudo apt-get install -y chromium-browser chromium-chromedriver
+          sudo apt-get install -y chromium-browser
+
+      - name: Limpiar chromedriver del sistema
+        run: sudo rm -f /usr/bin/chromedriver
 
       - name: Instalar librerías de Python
         run: |
@@ -31,6 +34,5 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TRADINGVIEW_URL: ${{ secrets.TRADINGVIEW_URL }}
         run: |
           python bot.py
